@@ -1,7 +1,8 @@
 ---
 name:
-   first: Chris
-   last: Dyer
-email: cdyer@cs.cmu.edu
-leaderboard: ProfDyer
-languages: [eng,deu]
+   first: Prashant
+   last: Sridhar
+email: psridha1@cs.cmu.edu
+leaderboard: Feedr
+languages: [eng,hin]
+
