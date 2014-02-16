@@ -13,6 +13,7 @@ def initialize_translation(source,target):
     corpus_length=len(source)
     source_words=set()
     target_words=set()
+    sent_total = {}
     t={}
     for k in range(corpus_length):
         for i in range(len(source[k])):
@@ -20,18 +21,17 @@ def initialize_translation(source,target):
         for j in range(len(target[k])):
             target_words.add(target[k][j])
 
-    return t,source_words,target_words
+    return t,source_words,target_words,sent_total
 
-def initialize(source_words,target_words):
-    count={}
-    for sword in source_words:
-        count[sword]={}
-        for tword in target_words:
-            count[sword][tword]=0.0
+def initialize(source_words,target_words, count):
+
+    for sword in count.keys():
+        count_dict = count[sword]
+        for tword in count_dict.keys():
+            count_dict[tword]=0.0
     return count
             
-def model1(source,target,t,source_words,target_words,count):
-    sent_total={}
+def model1(source,target,t,source_words,target_words,count,sent_total):
     corpus_length=len(source)
     length = len(target_words)
     for k in range(corpus_length):
@@ -43,10 +43,13 @@ def model1(source,target,t,source_words,target_words,count):
                 score = tdict.get(tword, float(1.0/length))
                 sent_total[tword] += score
         for tword in target[k]:
+            if not(sword in count.keys()):
+                    count[sword] = {}
+            count_dict = cound[sword]
             for sword in source[k]:
                 tdict = t.get(sword,{})
-                score = tdict.get(tword, float(1.0/length))
-                count[sword][tword] += float(score/sent_total[tword])
+                score = tdict.get(tword, float(1.0/length))                
+                count_dict[tword] += float(score/sent_total[tword])
 
     print "phase 1 done"
      
@@ -97,14 +100,15 @@ if __name__=="__main__":
              target.append(p.fren_tokenize(target_sent))
     g.close()
     it=1
-    t,source_words,target_words=initialize_translation(source,target)
+    count = {}
+    t,source_words,target_words,sent_total=initialize_translation(source,target)
     print "init complete"
     print "source length = ", len(source_words)
     print "target length = ", len(target_words) 
     while it < 6:
         print 'iteration num',it
-        count=initialize(source_words,target_words)
-        t=model1(source,target,t,source_words,target_words,count)
+        count=initialize(source_words,target_words,count)
+        t=model1(source,target,t,source_words,target_words,count,sent_total)
         it+=1
     alignment_model1(source,target,t)
 
