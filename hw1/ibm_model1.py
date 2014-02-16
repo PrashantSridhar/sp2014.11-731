@@ -19,43 +19,52 @@ def initialize_translation(source,target):
             source_words.add(source[k][i])
         for j in range(len(target[k])):
             target_words.add(target[k][j])
-    length=len(target_words)
-    for sword in source_words:
-        t[sword]={}
-        for tword in target_words:
-            t[sword][tword]=float(1.0/length)
+
     return t,source_words,target_words
 
 def initialize(source_words,target_words):
     count={}
-    total={}
     for sword in source_words:
         count[sword]={}
-        total[sword]=0.0
         for tword in target_words:
             count[sword][tword]=0.0
-    return count,total
+    return count
             
-def model1(source,target,t,source_words,target_words,count,total):
+def model1(source,target,t,source_words,target_words,count):
     sent_total={}
     corpus_length=len(source)
+    length = len(target_words)
     for k in range(corpus_length):
-        sent_total={}
+
         for tword in target[k]:
             sent_total[tword]=0.0
             for sword in source[k]:
-                sent_total[tword]+=t[sword][tword]
+                tdict = t.get(sword,{})
+                score = tdict.get(tword, float(1.0/length))
+                sent_total[tword] += score
         for tword in target[k]:
             for sword in source[k]:
-                count[sword][tword]+=float(t[sword][tword]/sent_total[tword])
-                total[sword]+=float(t[sword][tword]/sent_total[tword])
-    for sword in source_words:
-        for tword in target_words:
-            t[sword][tword]=float(count[sword][tword]/total[sword])
+                tdict = t.get(sword,{})
+                score = tdict.get(tword, float(1.0/length))
+                count[sword][tword] += float(score/sent_total[tword])
+
+    print "phase 1 done"
+     
+    for sword in count.keys():
+        norm = sum(count[sword].values())
+        sword_dict = count[sword]
+        if not(sword in t.keys()):
+            t[sword] = {}
+        trans_dict = t[sword]
+        for tword in sword_dict.keys():
+
+            trans_dict[tword] = float(sword_dict[tword]/norm)
+
     return t
          
 def alignment_model1(source,target,t):
     corpus_length=len(source)
+    length = len(target_words)
     for k in range(corpus_length):
         print_string=''
         for i in range(len(source[k])):
@@ -77,8 +86,8 @@ if __name__=="__main__":
     source=[]
     target=[]
     p=Preprocessing()
-    with open('test.data','r+') as g:
-    #with open('data/dev-test-train.de-en','r+') as g:
+    #with open('test.data','r+') as g:
+    with open('data/dev-test-train.de-en','r+') as g:
          for myline in g.readlines():
              source_sent=p.split_sentences(myline.strip())[0]
              target_sent=p.split_sentences(myline.strip())[1]
@@ -89,10 +98,13 @@ if __name__=="__main__":
     g.close()
     it=1
     t,source_words,target_words=initialize_translation(source,target)
+    print "init complete"
+    print "source length = ", len(source_words)
+    print "target length = ", len(target_words) 
     while it < 6:
         print 'iteration num',it
-        count,total=initialize(source_words,target_words)
-        t=model1(source,target,t,source_words,target_words,count,total)
+        count=initialize(source_words,target_words)
+        t=model1(source,target,t,source_words,target_words,count)
         it+=1
     alignment_model1(source,target,t)
 
