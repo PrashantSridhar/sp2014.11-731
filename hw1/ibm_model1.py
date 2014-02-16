@@ -1,5 +1,6 @@
 import re,string
 import random
+import sys
 class Preprocessing():
     exclude = set(string.punctuation)
     table = string.maketrans("","")
@@ -51,17 +52,19 @@ def model1(source,target,t,source_words,target_words,count,sent_total):
                 tdict = t.get(sword,{})
                 score = tdict.get(tword, float(1.0/length))
                 sent_total[tword] += score
-        for tword in target[k]:
+        for sword in source[k]:
             if not(sword in count.keys()):
                     count[sword] = {}
-            count_dict = cound[sword]
-            for sword in source[k]:
-                tdict = t.get(sword,{})
-                score = tdict.get(tword, float(1.0/length))                
-                count_dict[tword] += float(score/sent_total[tword])
-
+            count_dict = count[sword]
+            tdict = t.get(sword,{})
+            for tword in target[k]:
+                score = tdict.get(tword, float(1.0/length))          
+                count_dict[tword] = count_dict.get(tword,0) + float(score/sent_total[tword])
+        if k%1000 == 0:
+            print "sentence done ", k
+            sys.stdout.flush()
     print "phase 1 done"
-     
+    sys.stdout.flush()
     for sword in count.keys():
         norm = sum(count[sword].values())
         sword_dict = count[sword]
@@ -99,8 +102,8 @@ if __name__=="__main__":
     source=[]
     target=[]
     p=Preprocessing()
-    with open('test.data','r+') as g:
-    #with open('data/dev-test-train.de-en','r+') as g:
+    #with open('test.data','r+') as g:
+    with open('data/dev-test-train.de-en','r+') as g:
          for myline in g.readlines():
              source_sent=p.split_sentences(myline.strip())[0]
              target_sent=p.split_sentences(myline.strip())[1]
@@ -117,8 +120,11 @@ if __name__=="__main__":
     print "target length = ", len(target_words) 
     while it < 6:
         print 'iteration num',it
+        sys.stdout.flush()
         count=initialize(source_words,target_words,count)
+        print 'starting estimation'
         t=model1(source,target,t,source_words,target_words,count,sent_total)
         it+=1
+        sys.stdout.flush()
     alignment_model1(source,target,t)
 
