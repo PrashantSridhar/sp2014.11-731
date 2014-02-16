@@ -1,12 +1,21 @@
+import re,string
 import random
 class Preprocessing():
+    exclude = set(string.punctuation)
+    table = string.maketrans("","")
     def split_sentences(self,x):
         y=x.split('|||')
         return y
     def eng_tokenize(self,x):
-        return x.split(' ')
+        y=x.translate(self.table, string.punctuation)
+        z=y.strip()
+        newstring = re.sub(' +', ' ',z)
+        return newstring.split(' ')
     def fren_tokenize(self,x):
-        return x.split(' ')
+        y=x.translate(self.table, string.punctuation)
+        z=y.strip()
+        newstring = re.sub(' +', ' ',z)
+        return newstring.split(' ')
 
     
 def initialize_translation(source,target):
@@ -68,12 +77,13 @@ def model1(source,target,t,source_words,target_words,count,sent_total):
 def alignment_model1(source,target,t):
     corpus_length=len(source)
     length = len(target_words)
+    
     for k in range(corpus_length):
         print_string=''
-        for i in range(len(source[k])):
+        for i in range(1,len(source[k])):
             sword=source[k][i]
             (prob,tword,jans)=max((t[sword][target[k][j]],target[k][j],j) for j in range(len(target[k])))
-            #print tword,sword,prob
+            print tword,sword,prob
             print_string+=str(i-1)+"-"+str(jans)+' '
         print " ".join(source[k])
         print " ".join(target[k])
@@ -89,8 +99,8 @@ if __name__=="__main__":
     source=[]
     target=[]
     p=Preprocessing()
-    #with open('test.data','r+') as g:
-    with open('data/dev-test-train.de-en','r+') as g:
+    with open('test.data','r+') as g:
+    #with open('data/dev-test-train.de-en','r+') as g:
          for myline in g.readlines():
              source_sent=p.split_sentences(myline.strip())[0]
              target_sent=p.split_sentences(myline.strip())[1]
