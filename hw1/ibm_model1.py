@@ -40,15 +40,21 @@ def initialize(source_words,target_words, count):
             
 def model1(source,target,t,source_words,target_words,count,total):
     corpus_length=len(source)
+    length=len(target_words)
     for k in range(corpus_length):
         source_sentence=source[k]
         target_sentence=target[k]
         for sword in source_sentence:
-            fparamdenom=float(sum(t.get((sword,tword),float(1.0/corpus_length)) for tword in target_sentence))
+            #bug :fparamdenom=float(sum(t.get((sword,tword),float(1.0/corpus_length)) for tword in target_sentence))
+            fparamdenom=float(sum(t.get((sword,tword),float(1.0/length)) for tword in target_sentence))
             for tword in target_sentence:
-                delta=float(t.get((sword,tword),float(1.0/corpus_length)))/fparamdenom
+                #delta=float(t.get((sword,tword),float(1.0/corpus_length)))/fparamdenom
+                delta=float(t.get((sword,tword),float(1.0/length)))/fparamdenom
                 count[(sword,tword)] = count.get((sword,tword),0) + delta
                 total[sword] = total.get(sword,0) + delta
+        if k%1000==0:
+           print k/1000,"% done"
+           sys.stdout.flush()
     for (sword,tword) in count.keys():
         t[(sword,tword)]=float(count[(sword,tword)]/total[sword])
     return t
@@ -80,13 +86,10 @@ def alignment_model1(source,target,t):
     corpus_length=len(source)
     length = len(target_words)
     
-    f=open('output.txt','w+')
+    f=open('output.test2.txt','w+')
     for k in range(corpus_length):
         print_string=''
         for i in range(1,len(source[k])):
-            if i%1000==0:
-                print "sentence printed",i
-
             sword=source[k][i]
             (prob,tword,jans)=max((t[(sword,target[k][j])],target[k][j],j) for j in range(len(target[k])))
             #print tword,sword,prob
