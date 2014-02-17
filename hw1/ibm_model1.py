@@ -23,7 +23,6 @@ def initialize_translation(source,target):
     corpus_length=len(source)
     source_words=set()
     target_words=set()
-    sent_total = {}
     t={}
     for k in range(corpus_length):
         for i in range(len(source[k])):
@@ -31,51 +30,29 @@ def initialize_translation(source,target):
         for j in range(len(target[k])):
             target_words.add(target[k][j])
 
-    return t,source_words,target_words,sent_total
+    return t,source_words,target_words
 
 def initialize(source_words,target_words, count):
 
-    for sword in count.keys():
-        count_dict = count[sword]
-        for tword in count_dict.keys():
-            count_dict[tword]=0.0
+    for (sword,tword) in count.keys():
+        count[(sword,tword)]=0.0
     return count
             
-def model1(source,target,t,source_words,target_words,count,sent_total):
+def model1(source,target,t,source_words,target_words,count,total):
     corpus_length=len(source)
-    length = len(target_words)
     for k in range(corpus_length):
-
-        for tword in target[k]:
-            sent_total[tword]=0.0
-            for sword in source[k]:
-                tdict = t.get(sword,{})
-                score = tdict.get(tword, float(1.0/length))
-                sent_total[tword] += score
-        for sword in source[k]:
-            if not(sword in count.keys()):
-                    count[sword] = {}
-            count_dict = count[sword]
-            tdict = t.get(sword,{})
-            for tword in target[k]:
-                score = tdict.get(tword, float(1.0/length))          
-                count_dict[tword] = count_dict.get(tword,0) + float(score/sent_total[tword])
-        if k%1000 == 0:
-            print "sentence done ", k
-            sys.stdout.flush()
-    print "phase 1 done"
-    sys.stdout.flush()
-    for sword in count.keys():
-        norm = sum(count[sword].values())
-        sword_dict = count[sword]
-        if not(sword in t.keys()):
-            t[sword] = {}
-        trans_dict = t[sword]
-        for tword in sword_dict.keys():
-
-            trans_dict[tword] = float(sword_dict[tword]/norm)
-
+        source_sentence=source[k]
+        target_sentence=target[k]
+        for sword in source_sentence:
+            fparamdenom=float(sum(t.get((sword,tword),float(1.0/corpus_length)) for tword in target_sentence))
+            for tword in target_sentence:
+                delta=float(t.get((sword,tword),float(1.0/corpus_length)))/fparamdenom
+                count[(sword,tword)] = count.get((sword,tword),0) + delta
+                total[sword] = total.get(sword,0) + delta
+    for (sword,tword) in count.keys():
+        t[(sword,tword)]=float(count[(sword,tword)]/total[sword])
     return t
+
          
 def hmm(source,target,t,source_words,target_words,count,total):
     sent_total={}
@@ -111,7 +88,7 @@ def alignment_model1(source,target,t):
                 print "sentence printed",i
 
             sword=source[k][i]
-            (prob,tword,jans)=max((t[sword][target[k][j]],target[k][j],j) for j in range(len(target[k])))
+            (prob,tword,jans)=max((t[(sword,target[k][j])],target[k][j],j) for j in range(len(target[k])))
             #print tword,sword,prob
             print_string+=str(i-1)+"-"+str(jans)+' '
         #print " ".join(source[k])
@@ -141,7 +118,8 @@ if __name__=="__main__":
     g.close()
     it=1
     count = {}
-    t,source_words,target_words,sent_total=initialize_translation(source,target)
+    total = {}
+    t,source_words,target_words=initialize_translation(source,target)
     print "init complete"
     print "source length = ", len(source_words)
     print "target length = ", len(target_words) 
@@ -150,7 +128,7 @@ if __name__=="__main__":
         sys.stdout.flush()
         count=initialize(source_words,target_words,count)
         print 'starting estimation'
-        t=model1(source,target,t,source_words,target_words,count,sent_total)
+        t=model1(source,target,t,source_words,target_words,count,total)
         it+=1
         sys.stdout.flush()
     alignment_model1(source,target,t)
