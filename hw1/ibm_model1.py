@@ -49,6 +49,10 @@ def model1(source,target,t,source_words,target_words,count,total):
                 delta=float(t.get((sword,tword),float(1.0/corpus_length)))/fparamdenom
                 count[(sword,tword)] = count.get((sword,tword),0) + delta
                 total[sword] = total.get(sword,0) + delta
+
+        if k%1000 == 0:
+            print k,"% done"
+            sys.stdout.flush()
     for (sword,tword) in count.keys():
         t[(sword,tword)]=float(count[(sword,tword)]/total[sword])
     return t
@@ -106,8 +110,8 @@ if __name__=="__main__":
     source=[]
     target=[]
     p=Preprocessing()
-    with open('test.data','r+') as g:
-    #with open('data/dev-test-train.de-en','r+') as g:
+    #with open('test.data','r+') as g:
+    with open('data/dev-test-train.de-en','r+') as g:
          for myline in g.readlines():
              source_sent=p.split_sentences(myline.strip())[0]
              target_sent=p.split_sentences(myline.strip())[1]
