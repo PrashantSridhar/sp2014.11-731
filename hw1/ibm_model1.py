@@ -102,8 +102,8 @@ if __name__=="__main__":
     source=[]
     target=[]
     p=Preprocessing()
-    #with open('test.data','r+') as g:
-    with open('data/dev-test-train.de-en','r+') as g:
+    with open('test.data','r+') as g:
+    #with open('data/dev-test-train.de-en','r+') as g:
          for myline in g.readlines():
              source_sent=p.split_sentences(myline.strip())[0]
              target_sent=p.split_sentences(myline.strip())[1]
