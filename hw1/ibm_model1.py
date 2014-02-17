@@ -77,20 +77,47 @@ def model1(source,target,t,source_words,target_words,count,sent_total):
 
     return t
          
+def hmm(source,target,t,source_words,target_words,count,total):
+    sent_total={}
+    corpus_length=len(source)
+    for k in range(corpus_length):
+        sent_total={}
+        source_sentence=source[k]
+        target_sentence=target[k]
+        for sword in source_sentence:
+            fparam=t[sword]
+            fparamdenom[tword]=float(sum(fparam[tword] for tword in target_sentence))
+            for tword in target_sentence:
+                delta=float(tparam[tword])/fparamdenom
+                if (sword,tword) not in counts:
+                    count[(sword,tword)]=0
+                    total[sword]=0
+                count[(sword,tword)]+=delta
+                total[sword]+=delta
+    for sword in source_words:
+        for tword in target_words:
+            t[sword][tword]=float(count[sword][tword]/total[sword])
+    return t
+         
 def alignment_model1(source,target,t):
     corpus_length=len(source)
     length = len(target_words)
     
+    f=open('output.txt','w+')
     for k in range(corpus_length):
         print_string=''
         for i in range(1,len(source[k])):
+            if i%1000==0:
+                print "sentence printed",i
+
             sword=source[k][i]
             (prob,tword,jans)=max((t[sword][target[k][j]],target[k][j],j) for j in range(len(target[k])))
-            print tword,sword,prob
+            #print tword,sword,prob
             print_string+=str(i-1)+"-"+str(jans)+' '
-        print " ".join(source[k])
-        print " ".join(target[k])
-        print print_string
+        #print " ".join(source[k])
+        #print " ".join(target[k])
+        f.write(print_string+'\n')
+    f.close()
 
 
                     
