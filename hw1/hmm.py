@@ -37,11 +37,13 @@ def fwd_bkw(x, states, init, a, e, end_st):
     return fwd, bkw, posterior
 
 def baum_welch(source_corpus,target_corpus):
-    gamma={}
+    corpus_psi={}
+    corpus_gamma={}
     for k in range(len(source_corpus)):
         source_sentence=source_corpus[k]
         target_sentence=target_corpus[k]
         fwd,bkw,posterior=fwd_bkw(source_sentence, states,start_probability,alignment,translation, end_st)
+
         for t in range(target):
             psi[t]={}
             sum_psi=0.0
@@ -52,7 +54,9 @@ def baum_welch(source_corpus,target_corpus):
             for i,si in enumerate(source):
                 for j,sj in enumerate(source):
                     psi[t][(i,j)]=psi[t][(i,j)]/sum_psi
+                    corpus_psi[t][(i,j)]+=psi[t][(i,j)]
                     gamma[t][i]+=psi[t][(i,j)]
+                corpus_gamma[t][i]+=gamma[t][i]
 
     ##UPDATING##
     for k in range(len(source_corpus)):
