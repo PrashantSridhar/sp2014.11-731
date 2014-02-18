@@ -57,7 +57,7 @@ def model1(source,target,t,source_words,target_words,count):
                 total[tword] = total.get(tword,0) + delta
 
         if k%1000 == 0:
-            print k,"% done"
+            print k/1000,"% done"
             sys.stdout.flush()
 
     for (sword,tword) in count.keys():
@@ -91,19 +91,19 @@ def alignment_model1(source,target,t):
     corpus_length=len(source)
     length = len(target_words)
     
-    f=open('output.test5.txt','w+')
+    f=open('output.test.all.txt','w+')
     for k in range(corpus_length):
         print_string=''
         #for i in range(1,len(source[k])):
-        for i in range(1,len(target[k])):
+        for i in range(len(target[k])):
             tword=target[k][i]
             (prob,sword,jans)=max((t[(source[k][j],tword)],source[k][j],j) for j in range(len(source[k])))
             print tword,sword,prob
             if jans > 1:
                print_string+=str(jans-1)+"-"+str(i)+' '
-        print " ".join(source[k])
-        print " ".join(target[k])
-        f.write(print_string+'\n')
+               print " ".join(source[k])
+               print " ".join(target[k])
+               f.write(print_string+'\n')
     f.close()
 
 
