@@ -36,11 +36,13 @@ def initialize(source_words,target_words, count):
 
     for (sword,tword) in count.keys():
         count[(sword,tword)]=0.0
+
     return count
             
-def model1(source,target,t,source_words,target_words,count,total):
+def model1(source,target,t,source_words,target_words,count):
     corpus_length=len(source)
     length=len(target_words)
+    total = {}
     for k in range(corpus_length):
         source_sentence=source[k]
         target_sentence=target[k]
@@ -51,19 +53,14 @@ def model1(source,target,t,source_words,target_words,count,total):
                 #delta=float(t.get((sword,tword),float(1.0/corpus_length)))/fparamdenom
                 delta=float(t.get((sword,tword),float(1.0/length)))/fparamdenom
                 count[(sword,tword)] = count.get((sword,tword),0) + delta
-                total[sword] = total.get(sword,0) + delta
-<<<<<<< HEAD
+                total[tword] = total.get(tword,0) + delta
 
         if k%1000 == 0:
             print k,"% done"
             sys.stdout.flush()
-=======
-        if k%1000==0:
-           print k/1000,"% done"
-           sys.stdout.flush()
->>>>>>> 8c30cc0598cd6add75479ff317c9d8046f20d677
+
     for (sword,tword) in count.keys():
-        t[(sword,tword)]=float(count[(sword,tword)]/total[sword])
+        t[(sword,tword)]=float(count[(sword,tword)]/total[tword])
     return t
 
          
@@ -116,8 +113,8 @@ if __name__=="__main__":
     source=[]
     target=[]
     p=Preprocessing()
-    #with open('test.data','r+') as g:
-    with open('data/dev-test-train.de-en','r+') as g:
+    with open('test.data','r+') as g:
+    #with open('data/dev-test-train.de-en','r+') as g:
          for myline in g.readlines():
              source_sent=p.split_sentences(myline.strip())[0]
              target_sent=p.split_sentences(myline.strip())[1]
@@ -138,7 +135,7 @@ if __name__=="__main__":
         sys.stdout.flush()
         count=initialize(source_words,target_words,count)
         print 'starting estimation'
-        t=model1(source,target,t,source_words,target_words,count,total)
+        t=model1(source,target,t,source_words,target_words,count)
         it+=1
         sys.stdout.flush()
     alignment_model1(source,target,t)
