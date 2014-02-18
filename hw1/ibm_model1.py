@@ -8,12 +8,14 @@ class Preprocessing():
         y=x.split('|||')
         return y
     def eng_tokenize(self,x):
-        y=x.translate(self.table, string.punctuation)
+        #y=x.translate(self.table, string.punctuation)
+        y=x
         z=y.strip()
         newstring = re.sub(' +', ' ',z)
         return newstring.split(' ')
     def fren_tokenize(self,x):
-        y=x.translate(self.table, string.punctuation)
+        #y=x.translate(self.table, string.punctuation)
+        y=x
         z=y.strip()
         newstring = re.sub(' +', ' ',z)
         return newstring.split(' ')
@@ -39,8 +41,8 @@ def initialize(source_words,target_words, count):
 
     return count
             
-def model1(source,target,t,source_words,target_words,count):
-
+def model1(source,target,t,source_words,target_words):
+    count={}
     corpus_length=len(source)
     length=len(target_words)
     total = {}
@@ -95,15 +97,17 @@ def alignment_model1(source,target,t):
     for k in range(corpus_length):
         print_string=''
         #for i in range(1,len(source[k])):
+        a=[]
         for i in range(len(target[k])):
             tword=target[k][i]
             (prob,sword,jans)=max((t[(source[k][j],tword)],source[k][j],j) for j in range(len(source[k])))
             print tword,sword,prob
-            if jans > 1:
-               print_string+=str(jans-1)+"-"+str(i)+' '
-               print " ".join(source[k])
-               print " ".join(target[k])
-               f.write(print_string+'\n')
+            if jans >= 1:
+               a.append((jans-1,i))
+               #print_string+=str(jans-1)+"-"+str(i)+' '
+        for tup in sorted(a):
+            print_string+=str(tup[0])+"-"+str(tup[1])+' '
+        f.write(print_string+'\n')
     f.close()
 
 
@@ -116,8 +120,8 @@ if __name__=="__main__":
     source=[]
     target=[]
     p=Preprocessing()
-    with open('test.data','r+') as g:
-    #with open('data/dev-test-train.de-en','r+') as g:
+    #with open('test.data','r+') as g:
+    with open('data/dev-test-train.de-en','r+') as g:
          for myline in g.readlines():
              source_sent=p.split_sentences(myline.strip())[0]
              target_sent=p.split_sentences(myline.strip())[1]
@@ -136,9 +140,9 @@ if __name__=="__main__":
     while it < 6:
         print 'iteration num',it
         sys.stdout.flush()
-        count=initialize(source_words,target_words,count)
+        #count=initialize(source_words,target_words,count)
         print 'starting estimation'
-        t=model1(source,target,t,source_words,target_words,count)
+        t=model1(source,target,t,source_words,target_words)
         it+=1
         sys.stdout.flush()
     alignment_model1(source,target,t)
