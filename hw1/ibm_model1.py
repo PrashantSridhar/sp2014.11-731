@@ -46,7 +46,7 @@ def initialize_translation(source,target):
         for j in range(len(target[k])):
             target_words.add(target[k][j])
 
-    t=initialize_weights(target)
+    t=initialize_weights(source,target)
     return t,source_words,target_words
 
 def initialize(source_words,target_words, count):
@@ -56,21 +56,20 @@ def initialize(source_words,target_words, count):
 
     return count
             
-def initialize_weights(target_corpus):
+def initialize_weights(source_corpus,target_corpus):
     t={}
     for k in range(len(target_corpus)):
         target_sentence=target_corpus[k]
-        source_sentence=target_corpus[k]
+        source_sentence=source_corpus[k]
         for tword in target_sentence:
             for sword in source_sentence:   
                 if (sword,tword) not in t:
+                    t[(sword,tword)]=0.0
                 t[(sword,tword)]+=len(source_sentence)
-
-
     for key in t:
-        k=param[key]
-        param[key]=float(1.0/k)
-    return param
+        k=t[key]
+        t[key]=float(1.0/k)
+    return t
 
 
         
@@ -85,10 +84,11 @@ def model1(source,target,t,source_words,target_words):
         source_sentence=source[k]
         target_sentence=target[k]
         for sword in source_sentence:
-            fparamdenom=float(sum(t[(sword,tword)]) for tword in target_sentence))
+            fparamdenom=float(sum([t[(sword,tword)] for tword in target_sentence]))
             for tword in target_sentence:
                 #delta=float(t.get((sword,tword),float(1.0/corpus_length)))/fparamdenom
-                delta=float(t.get((sword,tword),t[tword]))/fparamdenom
+                #delta=float(t.get((sword,tword),t[tword]))/fparamdenom
+                delta=float(t[(sword,tword)])/fparamdenom
                 count[(sword,tword)] = count.get((sword,tword),0) + delta
                 total[tword] = total.get(tword,0) + delta
         if k%1000 == 0:
