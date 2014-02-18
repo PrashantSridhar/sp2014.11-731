@@ -11,14 +11,28 @@ class Preprocessing():
         #y=x.translate(self.table, string.punctuation)
         y=x
         z=y.strip()
-        newstring = re.sub(' +', ' ',z)
-        return newstring.split(' ')
+        #newstring = re.sub(' +', ' ',z)
+        newstring = z.lower()
+        p=newstring.split(' ')
+        for i in range(len(p)):
+            alpha=p[i]
+            if alpha.isdigit():
+                p[i]='#'
+        return p
+            
     def fren_tokenize(self,x):
         #y=x.translate(self.table, string.punctuation)
         y=x
         z=y.strip()
-        newstring = re.sub(' +', ' ',z)
-        return newstring.split(' ')
+        #newstring = re.sub(' +', ' ',z)
+        newstring = z.lower()
+        p=newstring.split(' ')
+        for i in range(len(p)):
+            alpha=p[i]
+            if alpha.isdigit():
+                p[i]='#'
+            
+        return p
 
     
 def initialize_translation(source,target):
@@ -32,6 +46,7 @@ def initialize_translation(source,target):
         for j in range(len(target[k])):
             target_words.add(target[k][j])
 
+    t=initialize_weights(target)
     return t,source_words,target_words
 
 def initialize(source_words,target_words, count):
@@ -41,23 +56,41 @@ def initialize(source_words,target_words, count):
 
     return count
             
+def initialize_weights(target_corpus):
+    t={}
+    for k in range(len(target_corpus)):
+        target_sentence=target_corpus[k]
+        source_sentence=target_corpus[k]
+        for tword in target_sentence:
+            for sword in source_sentence:   
+                if (sword,tword) not in t:
+                t[(sword,tword)]+=len(source_sentence)
+
+
+    for key in t:
+        k=param[key]
+        param[key]=float(1.0/k)
+    return param
+
+
+        
+
 def model1(source,target,t,source_words,target_words):
     count={}
     corpus_length=len(source)
-    length=len(target_words)
+    #length=len(target_words)  #bad initialisation
+    #param=initialize_weights()
     total = {}
     for k in range(corpus_length):
         source_sentence=source[k]
         target_sentence=target[k]
         for sword in source_sentence:
-            #bug :fparamdenom=float(sum(t.get((sword,tword),float(1.0/corpus_length)) for tword in target_sentence))
-            fparamdenom=float(sum(t.get((sword,tword),float(1.0/length)) for tword in target_sentence))
+            fparamdenom=float(sum(t[(sword,tword)]) for tword in target_sentence))
             for tword in target_sentence:
                 #delta=float(t.get((sword,tword),float(1.0/corpus_length)))/fparamdenom
-                delta=float(t.get((sword,tword),float(1.0/length)))/fparamdenom
+                delta=float(t.get((sword,tword),t[tword]))/fparamdenom
                 count[(sword,tword)] = count.get((sword,tword),0) + delta
                 total[tword] = total.get(tword,0) + delta
-
         if k%1000 == 0:
             print k/1000,"% done"
             sys.stdout.flush()
@@ -92,8 +125,7 @@ def hmm(source,target,t,source_words,target_words,count,total):
 def alignment_model1(source,target,t):
     corpus_length=len(source)
     length = len(target_words)
-    
-    f=open('output.test.all.txt','w+')
+    f=open('output.test.small.txt','w+')
     for k in range(corpus_length):
         print_string=''
         #for i in range(1,len(source[k])):
@@ -120,8 +152,8 @@ if __name__=="__main__":
     source=[]
     target=[]
     p=Preprocessing()
-    #with open('test.data','r+') as g:
-    with open('data/dev-test-train.de-en','r+') as g:
+    with open('test.data','r+') as g:
+    #with open('data/dev-test-train.de-en','r+') as g:
          for myline in g.readlines():
              source_sent=p.split_sentences(myline.strip())[0]
              target_sent=p.split_sentences(myline.strip())[1]
