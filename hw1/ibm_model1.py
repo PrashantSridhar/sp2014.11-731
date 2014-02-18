@@ -38,7 +38,8 @@ def initialize(source_words,target_words, count):
         count[(sword,tword)]=0.0
     return count
             
-def model1(source,target,t,source_words,target_words,count,total):
+def model1(source,target,t,source_words,target_words,count):
+    total={}
     corpus_length=len(source)
     length=len(target_words)
     for k in range(corpus_length):
@@ -86,16 +87,18 @@ def alignment_model1(source,target,t):
     corpus_length=len(source)
     length = len(target_words)
     
-    f=open('output.test2.txt','w+')
+    f=open('output.test5.txt','w+')
     for k in range(corpus_length):
         print_string=''
-        for i in range(1,len(source[k])):
-            sword=source[k][i]
-            (prob,tword,jans)=max((t[(sword,target[k][j])],target[k][j],j) for j in range(len(target[k])))
-            #print tword,sword,prob
-            print_string+=str(i-1)+"-"+str(jans)+' '
-        #print " ".join(source[k])
-        #print " ".join(target[k])
+        #for i in range(1,len(source[k])):
+        for i in range(1,len(target[k])):
+            tword=target[k][i]
+            (prob,sword,jans)=max((t[(source[k][j],tword)],source[k][j],j) for j in range(len(source[k])))
+            print tword,sword,prob
+            if jans > 1:
+               print_string+=str(jans-1)+"-"+str(i)+' '
+        print " ".join(source[k])
+        print " ".join(target[k])
         f.write(print_string+'\n')
     f.close()
 
@@ -131,7 +134,7 @@ if __name__=="__main__":
         sys.stdout.flush()
         count=initialize(source_words,target_words,count)
         print 'starting estimation'
-        t=model1(source,target,t,source_words,target_words,count,total)
+        t=model1(source,target,t,source_words,target_words,count)
         it+=1
         sys.stdout.flush()
     alignment_model1(source,target,t)
