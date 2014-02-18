@@ -40,10 +40,7 @@ def initialize(source_words,target_words, count):
     return count
             
 def model1(source,target,t,source_words,target_words,count):
-<<<<<<< HEAD
-=======
-    total={}
->>>>>>> 7ca42d37eeacf0e9d6a5036e415e41f47224f802
+
     corpus_length=len(source)
     length=len(target_words)
     total = {}
