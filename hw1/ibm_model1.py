@@ -7,33 +7,17 @@ class Preprocessing():
     def split_sentences(self,x):
         y=x.split('|||')
         return y
-    def eng_tokenize(self,x):
-        #y=x.translate(self.table, string.punctuation)
+    def tokenize(self,x):
         y=x
         z=y.strip()
-        #newstring = re.sub(' +', ' ',z)
         newstring = z.lower()
         p=newstring.split(' ')
         for i in range(len(p)):
             alpha=p[i]
             if alpha.isdigit():
-                p[i]='#'
+                p[i]='NUM'
         return p
             
-    def fren_tokenize(self,x):
-        #y=x.translate(self.table, string.punctuation)
-        y=x
-        z=y.strip()
-        #newstring = re.sub(' +', ' ',z)
-        newstring = z.lower()
-        p=newstring.split(' ')
-        for i in range(len(p)):
-            alpha=p[i]
-            if alpha.isdigit():
-                p[i]='#'
-            
-        return p
-
     
 def initialize_translation(source,target):
     corpus_length=len(source)
@@ -45,18 +29,15 @@ def initialize_translation(source,target):
             source_words.add(source[k][i])
         for j in range(len(target[k])):
             target_words.add(target[k][j])
-
-    t=initialize_weights(source,target)
+    t=initialize_weights(source,target,source_words,target_words)
     return t,source_words,target_words
 
 def initialize(source_words,target_words, count):
-
     for (sword,tword) in count.keys():
         count[(sword,tword)]=0.0
-
     return count
             
-def initialize_weights(source_corpus,target_corpus):
+def initialize_weights(source_corpus,target_corpus,source_words,target_words):
     t={}
     for k in range(len(target_corpus)):
         target_sentence=target_corpus[k]
@@ -65,10 +46,21 @@ def initialize_weights(source_corpus,target_corpus):
             for sword in source_sentence:   
                 if (sword,tword) not in t:
                     t[(sword,tword)]=0.0
-                t[(sword,tword)]+=len(source_sentence)
-    for key in t:
-        k=t[key]
-        t[key]=float(1.0/k)
+                #t[(sword,tword)]+=float(len(source_sentence))
+                #t[(sword,tword)]+=1.0
+                t[(sword,tword)]=1.0
+    for key,value in t.iteritems():
+        t[key]=float(1.0/float(value))
+        init=float(1.0/float(value))
+        #print key,init
+    for tgt in target_words:
+        ans=float(sum([t.get((src,tgt),0) for src in source_words]))
+        for src in source_words:
+            if (src,tgt) not in t:
+                continue
+            t[(src,tgt)]=float(t[(src,tgt)]/ans)
+        
+
     return t
 
 
@@ -77,26 +69,34 @@ def initialize_weights(source_corpus,target_corpus):
 def model1(source,target,t,source_words,target_words):
     count={}
     corpus_length=len(source)
-    #length=len(target_words)  #bad initialisation
-    #param=initialize_weights()
     total = {}
+    length=float(len(source_words))
     for k in range(corpus_length):
         source_sentence=source[k]
         target_sentence=target[k]
         for sword in source_sentence:
             fparamdenom=float(sum([t[(sword,tword)] for tword in target_sentence]))
+            #fparamdenom=float(sum([t.get((sword,tword),1.0/length) for tword in target_sentence]))
+            sum_delta=0.0
             for tword in target_sentence:
-                #delta=float(t.get((sword,tword),float(1.0/corpus_length)))/fparamdenom
+                #delta=float(t.get((sword,tword),float(1.0/length)))/fparamdenom
                 #delta=float(t.get((sword,tword),t[tword]))/fparamdenom
                 delta=float(t[(sword,tword)])/fparamdenom
-                count[(sword,tword)] = count.get((sword,tword),0) + delta
-                total[tword] = total.get(tword,0) + delta
+                count[(sword,tword)] = float(count.get((sword,tword),0.0)) + delta
+                total[tword] = float(total.get(tword,0.0)) + delta
+                #total[sword] = float(total.get(sword,0.0)) + delta
+                sum_delta+=delta
+            if abs(sum_delta-float(1.0)) > 0.001:
+               print sum_delta
+               print "EXIT"
+               exit()
         if k%1000 == 0:
             print k/1000,"% done"
             sys.stdout.flush()
 
     for (sword,tword) in count.keys():
         t[(sword,tword)]=float(count[(sword,tword)]/total[tword])
+        #t[(sword,tword)]=float(count[(sword,tword)]/total[sword])
     return t
 
          
@@ -133,7 +133,7 @@ def alignment_model1(source,target,t):
         for i in range(len(target[k])):
             tword=target[k][i]
             (prob,sword,jans)=max((t[(source[k][j],tword)],source[k][j],j) for j in range(len(source[k])))
-            print tword,sword,prob
+            #print tword,sword,prob
             if jans >= 1:
                a.append((jans-1,i))
                #print_string+=str(jans-1)+"-"+str(i)+' '
@@ -157,15 +157,17 @@ if __name__=="__main__":
          for myline in g.readlines():
              source_sent=p.split_sentences(myline.strip())[0]
              target_sent=p.split_sentences(myline.strip())[1]
-             es=p.eng_tokenize(source_sent)
+             es=p.tokenize(source_sent)
              es.insert(0,'NULL')
              source.append(es)
-             target.append(p.fren_tokenize(target_sent))
+             target.append(p.tokenize(target_sent))
     g.close()
     it=1
     count = {}
     total = {}
     t,source_words,target_words=initialize_translation(source,target)
+    #t={}
+    print "TRANSLATION MODEL initialised"
     print "init complete"
     print "source length = ", len(source_words)
     print "target length = ", len(target_words) 
@@ -175,7 +177,19 @@ if __name__=="__main__":
         #count=initialize(source_words,target_words,count)
         print 'starting estimation'
         t=model1(source,target,t,source_words,target_words)
+        ans=float(sum([t.get((',',tgt),0) for tgt in target_words]))
+        print "ANS",ans
         it+=1
         sys.stdout.flush()
     alignment_model1(source,target,t)
+    for tgt in target_words:
+    #for src in source_words:
+        #ans=float(sum([t.get((src,tgt),0) for tgt in target_words]))
+        ans=float(sum([t.get((src,tgt),0) for src in source_words]))
+        if abs(float(ans)-1.0) > 0.001:
+           print "MISTAKE"
+           print src,ans
+    print "###########"
+    print ans
+    print "###########"
 
