@@ -1,6 +1,7 @@
 import re,string
 import random
 import sys
+import time
 class Preprocessing():
     exclude = set(string.punctuation)
     table = string.maketrans("","")
@@ -39,6 +40,7 @@ def initialize(source_words,target_words, count):
             
 def initialize_weights(source_corpus,target_corpus,source_words,target_words):
     t={}
+    denom={}
     for k in range(len(target_corpus)):
         target_sentence=target_corpus[k]
         source_sentence=source_corpus[k]
@@ -46,21 +48,13 @@ def initialize_weights(source_corpus,target_corpus,source_words,target_words):
             for sword in source_sentence:   
                 if (sword,tword) not in t:
                     t[(sword,tword)]=0.0
-                #t[(sword,tword)]+=float(len(source_sentence))
-                #t[(sword,tword)]+=1.0
-                t[(sword,tword)]=1.0
-    for key,value in t.iteritems():
-        t[key]=float(1.0/float(value))
-        init=float(1.0/float(value))
-        #print key,init
-    for tgt in target_words:
-        ans=float(sum([t.get((src,tgt),0) for src in source_words]))
-        for src in source_words:
-            if (src,tgt) not in t:
-                continue
-            t[(src,tgt)]=float(t[(src,tgt)]/ans)
-        
-
+                if tword not in denom:
+                    denom[tword]=0.0
+                t[(sword,tword)]+=1.0
+                denom[tword]+=1.0
+    for (sword,tword) in t.keys():
+        t[(sword,tword)]=float(t[(sword,tword)]/denom[tword])
+    print "WEIGHTS INITIALIZED T"    
     return t
 
 
@@ -167,6 +161,10 @@ if __name__=="__main__":
     total = {}
     t,source_words,target_words=initialize_translation(source,target)
     #t={}
+    print "############"
+    print "################"
+    print "################"
+    print "################"
     print "TRANSLATION MODEL initialised"
     print "init complete"
     print "source length = ", len(source_words)
