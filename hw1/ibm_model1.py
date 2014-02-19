@@ -169,7 +169,7 @@ if __name__=="__main__":
     print "init complete"
     print "source length = ", len(source_words)
     print "target length = ", len(target_words) 
-    while it < 6:
+    while it < 16:
         print 'iteration num',it
         sys.stdout.flush()
         #count=initialize(source_words,target_words,count)
