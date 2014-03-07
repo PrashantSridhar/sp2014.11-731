@@ -2,15 +2,14 @@
 
 import argparse
 import json
-import os, sys, math
+import os, sys, math, string
+import morfessor
+import codecs
 
-def extract_features(hyp, ref):
-	hwords = hyp.lower().split()
-  	rwords = ref.lower().split()
-  	refset = set(rwords)
-  	precision = sum(1.0 for word in hwords if word in refset) / len(hwords)
-  	meteor = extract_meteor(hwords, rwords)
-  	return {'meteor':meteor}
+def extract_features(hyp, ref,args):
+  recall = compute_recall(hyp, ref, args)
+  exact = 1 if hyp == ref else 0
+  return {'recall':recall, 'exact':exact}
 
 def get_chunks(hwords, rwords):
 	hset = set(hwords)
@@ -21,14 +20,15 @@ def get_chunks(hwords, rwords):
 	hword_reduced = [word for word in hwords if word in rset]
 	rword_reduced = [word for word in rwords if word in hset]
 
-	print hword_reduced
-	print rword_reduced
 
 	chunks = 0
-	for i in xrange(len(hword_reduced)):
+	i = 0
+	while i < len(hword_reduced):
 		index = rword_reduced.index(hword_reduced[i])
+
 		start = i
 		index = index + 1
+
 		for j in xrange(start+1,len(hword_reduced)):
 			if index == len(rword_reduced):
 				break
@@ -37,64 +37,73 @@ def get_chunks(hwords, rwords):
 			i = i+1
 			index = index+1
 		chunks = chunks + 1
+		i = i+1
 
 	return (chunks, len(hword_reduced))
 
 
-def extract_meteor(hwords, rwords):
-	stem_len = 6
-	full_weight = 0.8
-	stem_weight = 0.9
+def compute_recall(hyp, ref,args):
+  full_weight = float(args.weight)
+  trunc_weight = 1- full_weight
 
-	alpha = 0.8
-	beta = 5.0
-	gamma = 0.25
 
-	hwords_trunc = [ word[:stem_len] for word in hwords]
-	rwords_trunc = [ word[:stem_len] for word in rwords]
 
-	rset = set(rwords)
-	rtrunc_set = set(rwords_trunc)
+  hwords = hyp.lower().split()
+  rwords = ref.lower().split()
+  hypset = set(hwords)
+  refset = set(rwords)
 
-	m = sum(full_weight for word in hwords if word in rset)
+  hwords_trunc = [word[:3] for word in hwords]
+  rwords_trunc = [word[:3] for word in rwords]
+  hypset_trunc = set(hwords_trunc)
+  refset_trunc = set(rwords_trunc)
 
-	m_t = sum(stem_weight for word in hwords_trunc if word in rtrunc_set)
 
-	prec = float (m + m_t) / float(len(hwords)*full_weight + len(hwords_trunc)*full_weight)
-	rec = float(m + m_t) / float(len(rwords)*stem_weight + len(rwords_trunc)*stem_weight)
 
-	(num_chunks,shared_length) = get_chunks(hwords, rwords)
+  recall = (sum(full_weight for word in refset if word in hypset) + \
+              sum(trunc_weight for word in refset_trunc if word in hypset_trunc)) / \
+  		      len(refset)*(full_weight + trunc_weight)
 
-	Fmean = (alpha * prec + (1-alpha)*rec)
-	if Fmean != 0.0:
-		Fmean = (prec*rec)/Fmean
-	else:
-		Fmean = 0.0
-	if float(shared_length - 1) == 0.0:
-		chunk_penalty = 1.0
-	else: 
-		chunk_penalty = float(num_chunks -1) / float(shared_length -1)
+  return recall
 
-	DF = gamma * (chunk_penalty**beta)
-	print (num_chunks,shared_length) 
+def get_data(args):
+	train = set()
+	input_file = codecs.open(args.pairs,'r', 'utf-8')
 
-	score = Fmean * (1-DF)
-	#score = Fmean
+	for ref_hyp in input_file:
+		ref,hyp = ref_hyp.rstrip().split(' ||| ')
+		train.add(ref)
+	return train
 
-	return score
-
+def train_model(args):
+	train_data = list(get_data(args))
+	print train_data
+	model = morfessor.BaselineModel()
+	model.load_data(train_data)
+	model.train_batch()
+	return model
 
 argparser = argparse.ArgumentParser(prog='extract')
 argparser.add_argument('-x', '--pairs', dest='pairs', default='data/en-cs.pairs', help='Reference-Hypothesis pairs')
+argparser.add_argument('-f', dest='full')
+argparser.add_argument('-t', dest='trunc')
+argparser.add_argument('-w', dest='weight')
+argparser.add_argument('-g', dest='gamma')
+argparser.add_argument('-b', dest='beta')
 
 args = argparser.parse_args()
+
+model = train_model(args)
 
 lc = 0
 sys.stderr.write('Extracting features for (ref,hyp) pairs from %s.\n' % args.pairs)
 # loop over all (ref,hyp) pairs in the input file and extract evaluation features
-for ref_hyp in open(args.pairs):
+
+input_file = codecs.open(args.pairs, 'r' , 'utf-8')
+
+for ref_hyp in input_file:
   lc += 1
   ref, hyp = ref_hyp.rstrip().split(' ||| ')
-  fmap = extract_features(hyp, ref)
+  fmap = extract_features(hyp, ref,args)
   print json.dumps(fmap)   # print evaluation feature map
 
