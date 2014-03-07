@@ -5,11 +5,84 @@ import json
 import os, sys, math
 
 def extract_features(hyp, ref):
-  hwords = hyp.lower().split()
-  rwords = ref.lower().split()
-  refset = set(rwords)
-  precision = sum(1.0 for word in hwords if word in refset) / len(hwords)
-  return {'prec':precision}
+	hwords = hyp.lower().split()
+  	rwords = ref.lower().split()
+  	refset = set(rwords)
+  	precision = sum(1.0 for word in hwords if word in refset) / len(hwords)
+  	meteor = extract_meteor(hwords, rwords)
+  	return {'meteor':meteor}
+
+def get_chunks(hwords, rwords):
+	hset = set(hwords)
+	rset = set(rwords)
+
+
+
+	hword_reduced = [word for word in hwords if word in rset]
+	rword_reduced = [word for word in rwords if word in hset]
+
+	print hword_reduced
+	print rword_reduced
+
+	chunks = 0
+	for i in xrange(len(hword_reduced)):
+		index = rword_reduced.index(hword_reduced[i])
+		start = i
+		index = index + 1
+		for j in xrange(start+1,len(hword_reduced)):
+			if index == len(rword_reduced):
+				break
+			if(rword_reduced[index] != hword_reduced[j]):
+				break
+			i = i+1
+			index = index+1
+		chunks = chunks + 1
+
+	return (chunks, len(hword_reduced))
+
+
+def extract_meteor(hwords, rwords):
+	stem_len = 6
+	full_weight = 0.8
+	stem_weight = 0.9
+
+	alpha = 0.8
+	beta = 5.0
+	gamma = 0.25
+
+	hwords_trunc = [ word[:stem_len] for word in hwords]
+	rwords_trunc = [ word[:stem_len] for word in rwords]
+
+	rset = set(rwords)
+	rtrunc_set = set(rwords_trunc)
+
+	m = sum(full_weight for word in hwords if word in rset)
+
+	m_t = sum(stem_weight for word in hwords_trunc if word in rtrunc_set)
+
+	prec = float (m + m_t) / float(len(hwords)*full_weight + len(hwords_trunc)*full_weight)
+	rec = float(m + m_t) / float(len(rwords)*stem_weight + len(rwords_trunc)*stem_weight)
+
+	(num_chunks,shared_length) = get_chunks(hwords, rwords)
+
+	Fmean = (alpha * prec + (1-alpha)*rec)
+	if Fmean != 0.0:
+		Fmean = (prec*rec)/Fmean
+	else:
+		Fmean = 0.0
+	if float(shared_length - 1) == 0.0:
+		chunk_penalty = 1.0
+	else: 
+		chunk_penalty = float(num_chunks -1) / float(shared_length -1)
+
+	DF = gamma * (chunk_penalty**beta)
+	print (num_chunks,shared_length) 
+
+	score = Fmean * (1-DF)
+	#score = Fmean
+
+	return score
+
 
 argparser = argparse.ArgumentParser(prog='extract')
 argparser.add_argument('-x', '--pairs', dest='pairs', default='data/en-cs.pairs', help='Reference-Hypothesis pairs')
